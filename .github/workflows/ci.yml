@@ -1,0 +1,50 @@
+name: Fixed Point Assignment CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential
+
+      - name: Build C code and shared library
+        run: |
+          make
+          ls -l
+          file libfixed_point.so || (echo "Shared library not built!" && exit 1)
+
+      - name: Run Python ctypes smoke test
+        env:
+          # Ensure current directory is searched for libfixed_point.so
+          LD_LIBRARY_PATH: .
+        run: |
+          python - << 'EOF'
+          import math
+          from fp_wrapper import solve_system
+
+          x1, x2, iters = solve_system(0.5, 0.5, 1e-6, 1000)
+          print("Solver output:", x1, x2, iters)
+
+          # Rough sanity checks: not NaN/inf and in a reasonable range
+          assert math.isfinite(x1) and math.isfinite(x2), "Non-finite solution"
+          assert 0.0 < x1 < 2.0, f"x1 out of range: {x1}"
+          assert 0.0 < x2 < 2.0, f"x2 out of range: {x2}"
+          assert 1 <= iters <= 1000, f"Iteration count out of range: {iters}"
+          EOF
