@@ -21,7 +21,7 @@
 
 
 
-# How will your code be run by autograder?
+# How will your code be run by the autograder?
   * I will run the Makefile
   * Make sure not to leave imports of unnecessary Python packages
     because the virtual machine supports only numpy. If you need a
